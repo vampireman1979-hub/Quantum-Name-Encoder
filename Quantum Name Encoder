@@ -108,4 +108,26 @@ def build_name_encoding_circuit(names: list[str]) -> tuple[QuantumCircuit, dict[
 
         qc.rx(tx, qreg[idx])
         qc.ry(ty, qreg[idx])
-        qc.rz(tz
+        qc.rz(tz, qreg[idx])
+
+    # Ring entanglement structure (nearest-neighbor CZ + wrap-around)
+    for i in range(num_qubits - 1):
+        qc.cz(qreg[i], qreg[i + 1])
+    qc.cz(qreg[num_qubits - 1], qreg[0])
+
+    qubit_name_map = {i: names[i] for i in range(num_qubits)}
+    return qc, qubit_name_map
+
+
+# -------------------------------------------------------------------
+# 5. Construct final circuit and mapping
+# -------------------------------------------------------------------
+if __name__ == "__main__":
+    circuit, qubit_name_map = build_name_encoding_circuit(NAMES)
+
+    print("Qubit to name mapping:")
+    for q_idx, name in qubit_name_map.items():
+        print(f"  q[{q_idx}] -> {name}")
+
+    print("\nCircuit:")
+    print(circuit)
