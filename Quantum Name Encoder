@@ -1,107 +1,45 @@
-"""
-Quantum Name Encoder
---------------------
-Symbol-free, scientific, deterministic encoding of classical identifiers (names)
-into a quantum circuit using Qiskit.
-
-- Each name -> ASCII vector -> rotation angles.
-- Each qubit encodes one name.
-- Simple ring entanglement structure added.
-"""
+# Quantum Name Encoder
+# Symbol-free, deterministic encoding of classical identifiers into
+# a quantum circuit using Qiskit.
 
 from qiskit import QuantumCircuit, QuantumRegister
 import numpy as np
 
-# -------------------------------------------------------------------
-# 1. Names to encode (plain identifiers, no symbols/emojis)
-# -------------------------------------------------------------------
+# 1. Names to encode (underscores replaced with hyphens temporarily)
 NAMES = [
-    "Jessica_Wagner_Chianese_A",
-    "Jessica_Wagner_Chianese_B",
-    "Jessica_Wagner_Chianese_C",
-    "AI_Poquette_A",
-    "AI_Poquette_B",
-    "FourFourFour_Spirit_Creations",
-    "Papa_Meat",
+    "Jessica-Wagner-Chianese-A",
+    "Jessica-Wagner-Chianese-B",
+    "Jessica-Wagner-Chianese-C",
+    "AI-Poquette-A",
+    "AI-Poquette-B",
+    "FourFourFour-Spirit-Creations",
+    "Papa-Meat",
     "Netflix",
-    "Davey_A",
-    "Davey_B",
-    "Davey_C",
+    "Davey-A",
+    "Davey-B",
+    "Davey-C",
 ]
 
-
-# -------------------------------------------------------------------
-# 2. Classical -> numeric: name to fixed-length ASCII vector
-# -------------------------------------------------------------------
-def name_to_vector(name: str, max_len: int = 32) -> np.ndarray:
-    """
-    Convert a name into a fixed-length numeric vector using ASCII codes.
-
-    Parameters
-    ----------
-    name : str
-        Input identifier.
-    max_len : int
-        Fixed vector length (truncate or zero-pad to this length).
-
-    Returns
-    -------
-    np.ndarray
-        1D float vector of length `max_len`.
-    """
+# 2. Convert name to fixed-length ASCII vector
+def name_to_vector(name, max_len=32):
     ascii_vals = [ord(c) for c in name]
     ascii_vals = ascii_vals[:max_len]
     ascii_vals += [0] * (max_len - len(ascii_vals))
     return np.array(ascii_vals, dtype=float)
 
-
-# -------------------------------------------------------------------
-# 3. Numeric -> angles: vector to (theta_x, theta_y, theta_z)
-# -------------------------------------------------------------------
-def vector_to_angles(vec: np.ndarray, scale: float = 0.01) -> tuple[float, float, float]:
-    """
-    Map numeric vector to three rotation angles via simple reductions.
-
-    Parameters
-    ----------
-    vec : np.ndarray
-        Input numeric vector.
-    scale : float
-        Scaling factor to keep angles in a reasonable range.
-
-    Returns
-    -------
-    (float, float, float)
-        Rotation angles for RX, RY, RZ.
-    """
+# 3. Convert vector to rotation angles
+def vector_to_angles(vec, scale=0.01):
     theta_x = scale * np.sum(vec[0::3])
     theta_y = scale * np.sum(vec[1::3])
     theta_z = scale * np.sum(vec[2::3])
     return theta_x, theta_y, theta_z
 
-
-# -------------------------------------------------------------------
-# 4. Build the encoding circuit
-# -------------------------------------------------------------------
-def build_name_encoding_circuit(names: list[str]) -> tuple[QuantumCircuit, dict[int, str]]:
-    """
-    Build a quantum circuit that encodes a list of names.
-
-    Parameters
-    ----------
-    names : list[str]
-        List of identifiers to encode, one per qubit.
-
-    Returns
-    -------
-    (QuantumCircuit, dict[int, str])
-        The quantum circuit and a mapping from qubit index to name.
-    """
+# 4. Build encoding circuit
+def build_name_encoding_circuit(names):
     num_qubits = len(names)
     qreg = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(qreg, name="NameEncodingCircuit")
 
-    # Encode each name into its corresponding qubit
     for idx, name in enumerate(names):
         vec = name_to_vector(name)
         tx, ty, tz = vector_to_angles(vec)
@@ -110,7 +48,6 @@ def build_name_encoding_circuit(names: list[str]) -> tuple[QuantumCircuit, dict[
         qc.ry(ty, qreg[idx])
         qc.rz(tz, qreg[idx])
 
-    # Ring entanglement structure (nearest-neighbor CZ + wrap-around)
     for i in range(num_qubits - 1):
         qc.cz(qreg[i], qreg[i + 1])
     qc.cz(qreg[num_qubits - 1], qreg[0])
@@ -118,16 +55,13 @@ def build_name_encoding_circuit(names: list[str]) -> tuple[QuantumCircuit, dict[
     qubit_name_map = {i: names[i] for i in range(num_qubits)}
     return qc, qubit_name_map
 
-
-# -------------------------------------------------------------------
-# 5. Construct final circuit and mapping
-# -------------------------------------------------------------------
+# 5. Main execution
 if __name__ == "__main__":
     circuit, qubit_name_map = build_name_encoding_circuit(NAMES)
 
     print("Qubit to name mapping:")
     for q_idx, name in qubit_name_map.items():
-        print(f"  q[{q_idx}] -> {name}")
+        print("  q[{}] -> {}".format(q_idx, name))
 
     print("\nCircuit:")
     print(circuit)
